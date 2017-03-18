@@ -4,15 +4,27 @@ var User = require('../models/user');
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
-  res.send({
-  	status: 1,
-  	data:[
-  		{ id: 1, nombre: 'Carlos', apellido: 'Perez' },
-  		{ id: 2, nombre: 'Carlos', apellido: 'Perez' },
-  		{ id: 3, nombre: 'Carlos', apellido: 'Perez' },
-  		{ id: 4, nombre: 'Carlos', apellido: 'Perez' }
-  	]
-  });
+  
+	User
+		.find({})
+		// .select('-edad')
+		.populate('empresa')
+		.exec(function(err, users){
+			if(err){
+				res.send({
+					status: 0,
+					message: 'Ocurrió un error',
+					error: err
+				});
+			}else{
+				res.send({
+					status: 1,
+					data: users
+				});
+			}
+		});
+
+
 });
 
 //users/aldia
@@ -25,9 +37,28 @@ router.get('/:id', function(req, res, next){
 	var idUser = req.params.id; // parámetro GET
 	// POST req.body.<variable> 
 
-	res
-		.status(200)
-		.send('Has solicitado el usuario ' + idUser);
+	User.findById(idUser)
+		.select('nombre apellido empresa')
+		.populate({
+			path: 'empresa',
+			select: 'razsoc ruc _id'
+
+		})
+		.exec(function(err, user){
+			if(err){
+				res.send({
+					status: 0,
+					message: 'Ocurrió un error',
+					error: err
+				});
+			}else{
+				res.send({
+					status: 1,
+					data: user
+				});
+			}
+		});
+
 });
 
 
@@ -45,12 +76,42 @@ router.post('/', function(req, res, next){
 			res.send({
 				status: 1,
 				mensaje: 'usuario creado',
-				data: user
+				data: user,
 			});
 		}
 	});
 });
 
+
+//PUT
+// MODELO.findByIdAndUpdate(
+//	<ID>, 
+//	<parametros a modificar>,
+//	{ new: true },
+//	function(err, result){
+
+//	})
+
+router.put('/:id', function(req, res, next){
+
+	User.findByIdAndUpdate(req.params.id, req.body, 
+		{new: true}, 
+		function(err, user){
+			if(err){
+				res.send({
+					status: 0,
+					mensaje: 'Ocurrió un error',
+					err: err,
+				});
+			}else{
+				res.send({
+					status: 1,
+					mensaje: 'usuario actualizado',
+					data: user,
+				});
+			}
+		});
+});
 
 
 module.exports = router;

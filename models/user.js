@@ -12,7 +12,8 @@ var UserSchema = new mongoose.Schema({
 	creado: {
 		type: Date,
 		default: Date.now()
-	}
+	},
+	empresa: { type: mongoose.Schema.Types.ObjectId, ref: "Organization"}
 });
 
 module.exports = mongoose.model('User', UserSchema);
