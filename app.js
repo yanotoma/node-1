@@ -12,7 +12,43 @@ var routes = require('./routes/index');
 var users = require('./routes/users');
 var organizations = require('./routes/organizations');
 
+var jwt = require('jsonwebtoken');
+var passport = require('passport');
+var passportJWT = require('passport-jwt');
+var ExtractJwt = passportJWT.ExtractJwt;
+var JwtStrategy = passportJWT.Strategy;
+
+
+// JWT Config
+var jwtOptions = {};
+jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeader();
+jwtOptions.secretOrKey = 'Mi-llave-shhhhhhh';
+
+var User = require('./models/user');
+
+var strategy = new JwtStrategy(jwtOptions, 
+                      function(jwtPayload, next){
+
+                        User.findById(jwtPayload.id,
+                          function(err, user){
+                            if(err){
+                              return next(err, false);
+                            }
+                            if(user){
+                              return next(null, user);
+                            }else{
+                              return next(null, false);
+                            }
+
+                          });
+
+                      });
+
+passport.use(strategy);
+
+
 var app = express();
+app.use(passport.initialize());
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

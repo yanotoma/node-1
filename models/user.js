@@ -13,7 +13,10 @@ var UserSchema = new mongoose.Schema({
 		type: Date,
 		default: Date.now()
 	},
-	empresa: { type: mongoose.Schema.Types.ObjectId, ref: "Organization"}
+	empresa: { type: mongoose.Schema.Types.ObjectId, ref: "Organization"},
+	user: { type:String, required: true, trim: true},
+	salt: String,
+	hash: String
 });
 
 module.exports = mongoose.model('User', UserSchema);

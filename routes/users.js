@@ -1,9 +1,12 @@
 var express = require('express');
 var router = express.Router();
 var User = require('../models/user');
+var hash = require('../lib/pass').hash;
+var jwt = require('jsonwebtoken');
+var passport = require('passport');
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
+router.get('/', passport.authenticate('jwt', { session: false }) ,function(req, res, next) {
   
 	User
 		.find({})
@@ -65,21 +68,102 @@ router.get('/:id', function(req, res, next){
 router.post('/', function(req, res, next){
 	console.log(req.body);
 
-	User.create(req.body, function(err, user){
+	var password = req.body.password;
+	delete req.body.password;
+
+	hash(password, function(err, salt, hash){
 		if(err){
 			res.send({
 				status: 0,
-				mensaje: 'Ocurrió un error',
-				err: err,
+				mensaje: 'Ocurrió un error al encriptar el password',
+				error: err
 			});
 		}else{
-			res.send({
-				status: 1,
-				mensaje: 'usuario creado',
-				data: user,
+
+			var user = new User(req.body);
+
+			user.salt = salt;
+			user.hash = hash;
+
+			user.save(function(err, newUser){
+				if(err){
+					res.send({
+						status: 0,
+						mensaje: 'Ocurrió un error',
+						err: err,
+					});
+				}else{
+					res.send({
+						status: 1,
+						mensaje: 'usuario creado',
+						data: newUser,
+					});
+				}
 			});
+
 		}
 	});
+});
+
+router.post('/login', function(req, res, next){
+	//validar que ha enviado los datos
+	if(!req.body.user || !req.body.password){
+		res.send({
+			status: 0,
+			mensaje: 'Datos incompletos',
+		});
+
+		return;
+	}
+
+	User.findOne({user: req.body.user}, 
+		function(err, user){
+			if(err){
+				res.send({
+					status: 0,
+					mensaje: 'Ocurrió un error',
+					error: err 
+				});
+				return;
+			}
+
+			// password = salt + hash
+			// password - salt = hash
+
+			//validar password
+			hash(req.body.password, user.salt , 
+				function(err, hash){
+
+				if(err){
+					res.send({
+						status: 0,
+						mensaje: 'Ocurrió un error',
+						error: err 
+					});
+					return;
+				}
+
+				if(hash != user.hash){
+					res.send({
+						status: 0,
+						mensaje: 'Password incorrecto'
+					});
+
+					return;
+				}
+
+				//generar token
+				var payload = {id: user.id};
+				var token = jwt.sign(payload, 'Mi-llave-shhhhhhh');
+
+				res.send({
+					status:1,
+					user: user,
+					token: token
+				});
+			});
+
+		});
 });
 
 
